@@ -1,6 +1,9 @@
 package com.example.terminal_test_app.presentation.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.NetworkCheck
+import androidx.compose.material.icons.filled.PointOfSale
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -21,10 +24,26 @@ data class BottomTabitem(
 )
 
 private val items = listOf(
-    BottomTabitem(Screen.Checkout.route, "Checkout", Icons.Filled.ShoppingCart),
-    BottomTabitem(Screen.Scan.route, "Scan", Icons.Filled.Star),
-    BottomTabitem(Screen.NetworkTest.route, "Network Test", Icons.Filled.Search),
-    BottomTabitem(Screen.Settings.route, "Settings", Icons.Filled.Settings),
+    BottomTabitem(
+        Screen.Checkout.route,
+        "Checkout",
+        Icons.Filled.PointOfSale
+    ),
+    BottomTabitem(
+        Screen.Scan.route,
+        "Scan",
+        Icons.Filled.QrCodeScanner
+    ),
+    BottomTabitem(
+        Screen.NetworkTest.route,
+        "Network",
+        Icons.Filled.NetworkCheck
+    ),
+    BottomTabitem(
+        Screen.Settings.route,
+        "Settings",
+        Icons.Filled.Settings
+    ),
 )
 
 @Composable
