@@ -82,6 +82,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("com.google.dagger:hilt-android:2.51")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("com.squareup.retrofit2:converter-scalars:2.9.0")
     kapt("com.google.dagger:hilt-android-compiler:2.51")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

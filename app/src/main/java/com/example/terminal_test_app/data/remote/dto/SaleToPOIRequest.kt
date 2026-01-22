@@ -1,48 +1,65 @@
 package com.example.terminal_test_app.data.remote.dto
+
 import kotlinx.serialization.Serializable
 
+// --- REQUESTS ---
 data class SaleToPOIRequest(
     val MessageHeader: MessageHeader,
-    val AdminRequest: AdminRequest? = null  // Only for Admin calls
+    val PaymentRequest: PaymentRequest? = null,
+    val AdminRequest: AdminRequest? = null
 )
 
 data class MessageHeader(
     val ProtocolVersion: String = "3.0",
     val MessageClass: String = "Service",
-    val MessageCategory: String = "Admin",
+    val MessageCategory: String, // Removed default to force explicit setting
     val MessageType: String = "Request",
     val ServiceID: String,
     val SaleID: String,
-    val POIID: String  // e.g., "S1EL-123456789"
+    val POIID: String
+)
+
+data class PaymentRequest(
+    val SaleData: SaleData,
+    val PaymentTransaction: PaymentTransaction
+)
+
+data class SaleData(val SaleTransactionID: SaleTransactionID)
+data class SaleTransactionID(val TransactionID: String, val TimeStamp: String)
+
+data class PaymentTransaction(
+    val AmountsReq: AmountsReq // Use Req for Request
+)
+
+data class AmountsReq(
+    val Currency: String,
+    val RequestedAmount: Double
 )
 
 data class AdminRequest(
-    val ServiceIdentification: String  // Base64-encoded inner JSON
+    val ServiceIdentification: String
 )
 
-// Inner JSON (encoded to Base64) - not sent directly
-@Serializable
-data class ScanSessionJson(
-    val Session: Session,
-    val Operation: List<Operation>
-)
-
-@Serializable
-data class Session(
-    val Id: String,  // e.g., "scan-uuid-123"
-    val Type: String = "Once"
-)
-
-@Serializable
-data class Operation(
-    val Type: String = "ScanBarcode",
-    val TimeoutMs: Int
-)
-
-// Response DTO
+// --- RESPONSES ---
 data class SaleToPOIResponse(
     val MessageHeader: MessageHeaderResponse,
-    val AdminResponse: AdminResponse?
+    val AdminResponse: AdminResponse? = null,
+    val PaymentResponse: PaymentResponse? = null
+)
+
+data class PaymentResponse(
+    val Response: Response
+)
+
+data class AdminResponse(
+    val Response: Response,
+    val AdditionalResponse: String?
+)
+
+data class Response(
+    val Result: String, // "Success" or "Failure"
+    val ErrorCondition: String? = null,
+    val AdditionalResponse: String? = null
 )
 
 data class MessageHeaderResponse(
@@ -55,13 +72,15 @@ data class MessageHeaderResponse(
     val POIID: String
 )
 
-data class AdminResponse(
-    val Response: Response,
-    val AdditionalResponse: String?  // Base64-encoded result or error
+// --- SCANNER INNER JSON ---
+@Serializable
+data class ScanSessionJson(
+    val Session: Session,
+    val Operation: List<Operation>
 )
 
-data class Response(
-    val Result: String,  // "Success" or "Failure"
-    val AdditionalResponse: String? = null,  // Sometimes here too
-    val ErrorCondition: String? = null
-)
+@Serializable
+data class Session(val Id: String, val Type: String = "Once")
+
+@Serializable
+data class Operation(val Type: String = "ScanBarcode", val TimeoutMs: Int)
