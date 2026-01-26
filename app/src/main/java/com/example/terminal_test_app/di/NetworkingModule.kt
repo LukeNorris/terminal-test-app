@@ -32,8 +32,8 @@ object NetworkModule {
     ): OkHttpClient =
         OkHttpClient.Builder()
             .sslSocketFactory(sslContext.socketFactory, trustManager)
-            .hostnameVerifier { host, _ ->
-                host == "127.0.0.1" || host == "localhost"
+            .hostnameVerifier { _, _ ->
+               true
             }
             .build()
 
