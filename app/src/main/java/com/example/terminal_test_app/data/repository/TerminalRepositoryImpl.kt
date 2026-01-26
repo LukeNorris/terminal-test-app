@@ -117,31 +117,41 @@ class TerminalRepositoryImpl @Inject constructor(
         settings: TerminalSettings
     ): Result<SaleToPOIResponse> {
         return try {
-            // 1. Setup Crypto with fallback for empty values
             val nexoCrypto = NexoCrypto(
                 keyIdentifier = settings.nexoKeyIdentifier,
                 keyVersion = 1L,
                 passphrase = settings.nexoPassphrase.toCharArray()
             )
 
-            // 2. Prepare JSON
+            // 1. Wrap and generate Plaintext
             val outerWrapper = mapOf("SaleToPOIRequest" to request)
-            val plainJson = Json { encodeDefaults = true }.encodeToString(outerWrapper)
+            val plainJson = Json { encodeDefaults = true; prettyPrint = true }.encodeToString(outerWrapper)
 
-            // 3. Encrypt and Send
+            // LOG 1: The readable request (useful for debugging logic)
+            android.util.Log.d("TerminalPayload", "PLAINTEXT REQUEST:\n$plainJson")
+
+            // 2. Encrypt to generate the final string
             val securedJson = nexoCrypto.encryptAndWrap(plainJson)
+
+            // LOG 2: The final encrypted string (exactly what is sent to the terminal)
+            android.util.Log.d("TerminalPayload", "ENCRYPTED BLOB SENT:\n$securedJson")
+
             val encryptedResponse = api.sendAdminRequest(securedJson)
 
-            // 4. FIX: Use explicit types AND ensure non-nullable return
+            // LOG 3: The encrypted response from the terminal
+            android.util.Log.d("TerminalPayload", "ENCRYPTED RESPONSE RECEIVED:\n$encryptedResponse")
+
             val decryptedJson = nexoCrypto.decryptAndValidate(encryptedResponse) { keyId: String, keyVersion: Long ->
-                // Explicitly returning CharArray from a non-nullable String
                 settings.nexoPassphrase.toCharArray()
             }
 
-            // 5. Decode
+            // LOG 4: The decrypted readable response
+            android.util.Log.d("TerminalPayload", "DECRYPTED RESPONSE:\n$decryptedJson")
+
             val response = Json { ignoreUnknownKeys = true }.decodeFromString<SaleToPOIResponse>(decryptedJson)
             Result.success(response)
         } catch (e: Exception) {
+            android.util.Log.e("TerminalPayload", "Error during secure communication", e)
             Result.failure(e)
         }
     }

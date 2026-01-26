@@ -1,86 +1,120 @@
 package com.example.terminal_test_app.data.remote.dto
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 
-// --- REQUESTS ---
+// --- WRAPPER DTOs ---
+
+@Serializable
 data class SaleToPOIRequest(
-    val MessageHeader: MessageHeader,
-    val PaymentRequest: PaymentRequest? = null,
-    val AdminRequest: AdminRequest? = null
+    @SerialName("MessageHeader") val MessageHeader: MessageHeader,
+    @SerialName("PaymentRequest") val PaymentRequest: PaymentRequest? = null,
+    @SerialName("AdminRequest") val AdminRequest: AdminRequest? = null
 )
 
-data class MessageHeader(
-    val ProtocolVersion: String = "3.0",
-    val MessageClass: String = "Service",
-    val MessageCategory: String, // Removed default to force explicit setting
-    val MessageType: String = "Request",
-    val ServiceID: String,
-    val SaleID: String,
-    val POIID: String
-)
-
-data class PaymentRequest(
-    val SaleData: SaleData,
-    val PaymentTransaction: PaymentTransaction
-)
-
-data class SaleData(val SaleTransactionID: SaleTransactionID)
-data class SaleTransactionID(val TransactionID: String, val TimeStamp: String)
-
-data class PaymentTransaction(
-    val AmountsReq: AmountsReq // Use Req for Request
-)
-
-data class AmountsReq(
-    val Currency: String,
-    val RequestedAmount: Double
-)
-
-data class AdminRequest(
-    val ServiceIdentification: String
-)
-
-// --- RESPONSES ---
+@Serializable
 data class SaleToPOIResponse(
-    val MessageHeader: MessageHeaderResponse,
-    val AdminResponse: AdminResponse? = null,
-    val PaymentResponse: PaymentResponse? = null
+    @SerialName("MessageHeader") val MessageHeader: MessageHeaderResponse,
+    @SerialName("AdminResponse") val AdminResponse: AdminResponse? = null,
+    @SerialName("PaymentResponse") val PaymentResponse: PaymentResponse? = null
 )
 
-data class PaymentResponse(
-    val Response: Response
+// --- HEADER DTOs ---
+
+@Serializable
+data class MessageHeader(
+    @SerialName("ProtocolVersion") val ProtocolVersion: String = "3.0",
+    @SerialName("MessageClass") val MessageClass: String = "Service",
+    @SerialName("MessageCategory") val MessageCategory: String,
+    @SerialName("MessageType") val MessageType: String = "Request",
+    @SerialName("ServiceID") val ServiceID: String,
+    @SerialName("SaleID") val SaleID: String,
+    @SerialName("POIID") val POIID: String
 )
 
-data class AdminResponse(
-    val Response: Response,
-    val AdditionalResponse: String?
-)
-
-data class Response(
-    val Result: String, // "Success" or "Failure"
-    val ErrorCondition: String? = null,
-    val AdditionalResponse: String? = null
-)
-
+@Serializable
 data class MessageHeaderResponse(
-    val ProtocolVersion: String,
-    val MessageClass: String,
-    val MessageCategory: String,
-    val MessageType: String,
-    val ServiceID: String,
-    val SaleID: String,
-    val POIID: String
+    @SerialName("ProtocolVersion") val ProtocolVersion: String,
+    @SerialName("MessageClass") val MessageClass: String,
+    @SerialName("MessageCategory") val MessageCategory: String,
+    @SerialName("MessageType") val MessageType: String,
+    @SerialName("ServiceID") val ServiceID: String,
+    @SerialName("SaleID") val SaleID: String,
+    @SerialName("POIID") val POIID: String
 )
 
-// --- SCANNER INNER JSON ---
+// --- PAYMENT DTOs ---
+
+@Serializable
+data class PaymentRequest(
+    @SerialName("SaleData") val SaleData: SaleData,
+    @SerialName("PaymentTransaction") val PaymentTransaction: PaymentTransaction
+)
+
+@Serializable
+data class PaymentResponse(
+    @SerialName("Response") val Response: Response,
+    @SerialName("SaleData") val SaleData: SaleData? = null
+)
+
+@Serializable
+data class SaleData(
+    @SerialName("SaleTransactionID") val SaleTransactionID: SaleTransactionID
+)
+
+@Serializable
+data class SaleTransactionID(
+    @SerialName("TransactionID") val TransactionID: String,
+    @SerialName("TimeStamp") val TimeStamp: String
+)
+
+@Serializable
+data class PaymentTransaction(
+    @SerialName("AmountsReq") val AmountsReq: AmountsReq
+)
+
+@Serializable
+data class AmountsReq(
+    @SerialName("Currency") val Currency: String,
+    @SerialName("RequestedAmount") val RequestedAmount: Double
+)
+
+// --- ADMIN / SCANNER DTOs ---
+
+@Serializable
+data class AdminRequest(
+    @SerialName("ServiceIdentification") val ServiceIdentification: String
+)
+
+@Serializable
+data class AdminResponse(
+    @SerialName("Response") val Response: Response,
+    @SerialName("AdditionalResponse") val AdditionalResponse: String? = null
+)
+
+@Serializable
+data class Response(
+    @SerialName("Result") val Result: String, // "Success", "Failure", "Partial"
+    @SerialName("ErrorCondition") val ErrorCondition: String? = null,
+    @SerialName("AdditionalResponse") val AdditionalResponse: String? = null
+)
+
+// --- SCANNER INNER JSON (The Payload inside the Base64 String) ---
+
 @Serializable
 data class ScanSessionJson(
-    val Session: Session,
-    val Operation: List<Operation>
+    @SerialName("Session") val Session: Session,
+    @SerialName("Operation") val Operation: List<Operation>
 )
 
 @Serializable
-data class Session(val Id: String, val Type: String = "Once")
+data class Session(
+    @SerialName("Id") val Id: String,
+    @SerialName("Type") val Type: String = "Once" // "Begin", "End", "Once"
+)
 
 @Serializable
-data class Operation(val Type: String = "ScanBarcode", val TimeoutMs: Int)
+data class Operation(
+    @SerialName("Type") val Type: String = "ScanBarcode",
+    @SerialName("TimeoutMs") val TimeoutMs: Int
+)
