@@ -14,20 +14,16 @@ import javax.inject.Singleton
 import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
 
+
+
 @Module
 @InstallIn(SingletonComponent::class)
 object SecurityModule {
 
     @Provides
     @Singleton
-    fun provideTrustManager(
-        @ApplicationContext context: Context,
-        settingsDataSource: SettingsDataSource
-    ): X509TrustManager =
-        runBlocking {
-            val settings = settingsDataSource.settings.first()
-            AdyenTls.createTrustManager(context, settings.environment)
-        }
+    fun provideTrustManager(): X509TrustManager =
+        AdyenTls.createUnsafeTrustManager()
 
     @Provides
     @Singleton

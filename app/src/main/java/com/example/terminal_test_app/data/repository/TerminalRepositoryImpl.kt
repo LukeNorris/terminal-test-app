@@ -148,11 +148,20 @@ class TerminalRepositoryImpl @Inject constructor(
             // LOG 4: The decrypted readable response
             android.util.Log.d("TerminalPayload", "DECRYPTED RESPONSE:\n$decryptedJson")
 
-            val response = Json { ignoreUnknownKeys = true }.decodeFromString<SaleToPOIResponse>(decryptedJson)
+            val json = Json { ignoreUnknownKeys = true }
+            val envelope = json.decodeFromString<SaleToPOIResponseEnvelope>(decryptedJson)
+
+            val response = envelope.SaleToPOIResponse
+                ?: throw Exception(
+                    "Terminal response missing SaleToPOIResponse envelope. Raw:\n$decryptedJson"
+                )
+
             Result.success(response)
         } catch (e: Exception) {
-            android.util.Log.e("TerminalPayload", "Error during secure communication", e)
-            Result.failure(e)
+            val detailedError = "${e.message}\nCause: ${e.cause?.message}"
+            android.util.Log.e("TerminalPayload", "Error: $detailedError", e)
+            // This will now show the Cause, which helps identify if it's a hostname vs cert issue
+            Result.failure(Exception(detailedError))
         }
     }
 

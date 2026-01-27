@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.terminal_test_app.domain.usecase.MakePaymentUseCase
 import com.example.terminal_test_app.domain.usecase.OpenCheckoutUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 sealed class PaymentUiState {
     object Idle : PaymentUiState()
@@ -15,11 +17,11 @@ sealed class PaymentUiState {
     data class Error(val message: String) : PaymentUiState()
 }
 
-class CheckoutViewModel(
+@HiltViewModel
+class CheckoutViewModel @Inject constructor(
     private val openCheckoutUseCase: OpenCheckoutUseCase,
     private val makePaymentUseCase: MakePaymentUseCase
 ) : ViewModel() {
-
 
     private val _uiState = MutableStateFlow<PaymentUiState>(PaymentUiState.Idle)
     val uiState: StateFlow<PaymentUiState> = _uiState
@@ -27,18 +29,15 @@ class CheckoutViewModel(
     fun resetStatus() {
         _uiState.value = PaymentUiState.Idle
     }
-    // Existing Button logic
+
     fun onCheckoutClicked() {
         openCheckoutUseCase()
     }
 
-
-    // New Terminal Button logic
     fun onTerminalPaymentClicked() {
         viewModelScope.launch {
             _uiState.value = PaymentUiState.Loading
 
-            // Hardcoding 10.00 for testing purposes
             val result = makePaymentUseCase(10.00)
 
             result.onSuccess {

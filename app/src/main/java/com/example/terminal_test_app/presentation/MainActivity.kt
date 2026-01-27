@@ -13,16 +13,19 @@ import com.example.terminal_test_app.presentation.navigation.Screen
 import com.example.terminal_test_app.ui.theme.TerminaltestappTheme
 import com.example.terminal_test_app.presentation.navigation.BottomBar
 import com.example.terminal_test_app.presentation.ui.components.AppTopBar
+import dagger.hilt.android.AndroidEntryPoint
 
-
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
             TerminaltestappTheme {
 
-               val navController = rememberNavController()
+                val navController = rememberNavController()
                 val currentDestination = navController.currentBackStackEntryAsState().value?.destination
                 val currentRoute = currentDestination?.route
 
@@ -34,17 +37,18 @@ class MainActivity : ComponentActivity() {
                     else -> "Test App"
                 }
 
-                val showBottomBar = currentRoute == Screen.Checkout.route ||
-                        currentRoute == Screen.Scan.route ||
-                        currentRoute == Screen.NetworkTest.route ||
-                        currentRoute == Screen.Settings.route
+                val showBottomBar =
+                    currentRoute == Screen.Checkout.route ||
+                            currentRoute == Screen.Scan.route ||
+                            currentRoute == Screen.NetworkTest.route ||
+                            currentRoute == Screen.Settings.route
 
                 Scaffold(
                     topBar = {
                         AppTopBar(title = title, showLogo = false, onNavBack = null)
                     },
                     bottomBar = {
-                        if(showBottomBar) BottomBar(navController)
+                        if (showBottomBar) BottomBar(navController)
                     }
                 ) { padding ->
                     AppNavGraph(
@@ -52,9 +56,7 @@ class MainActivity : ComponentActivity() {
                         padding = padding
                     )
                 }
-                //QrDebugScreen()
             }
         }
     }
 }
-

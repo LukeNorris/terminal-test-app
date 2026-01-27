@@ -14,12 +14,17 @@ data class SaleToPOIRequest(
 
 @Serializable
 data class SaleToPOIResponse(
-    @SerialName("MessageHeader") val MessageHeader: MessageHeaderResponse,
+    @SerialName("MessageHeader") val MessageHeader: MessageHeaderResponse? = null,
     @SerialName("AdminResponse") val AdminResponse: AdminResponse? = null,
     @SerialName("PaymentResponse") val PaymentResponse: PaymentResponse? = null
 )
 
 // --- HEADER DTOs ---
+
+@Serializable
+data class SaleToPOIResponseEnvelope(
+    @SerialName("SaleToPOIResponse") val SaleToPOIResponse: SaleToPOIResponse? = null
+)
 
 @Serializable
 data class MessageHeader(
@@ -34,13 +39,13 @@ data class MessageHeader(
 
 @Serializable
 data class MessageHeaderResponse(
-    @SerialName("ProtocolVersion") val ProtocolVersion: String,
-    @SerialName("MessageClass") val MessageClass: String,
-    @SerialName("MessageCategory") val MessageCategory: String,
-    @SerialName("MessageType") val MessageType: String,
-    @SerialName("ServiceID") val ServiceID: String,
-    @SerialName("SaleID") val SaleID: String,
-    @SerialName("POIID") val POIID: String
+    @SerialName("ProtocolVersion") val ProtocolVersion: String? = null,
+    @SerialName("MessageClass") val MessageClass: String? = null,
+    @SerialName("MessageCategory") val MessageCategory: String? = null,
+    @SerialName("MessageType") val MessageType: String? = null,
+    @SerialName("ServiceID") val ServiceID: String? = null,
+    @SerialName("SaleID") val SaleID: String? = null,
+    @SerialName("POIID") val POIID: String? = null
 )
 
 // --- PAYMENT DTOs ---
@@ -53,7 +58,7 @@ data class PaymentRequest(
 
 @Serializable
 data class PaymentResponse(
-    @SerialName("Response") val Response: Response,
+    @SerialName("Response") val Response: Response? = null,
     @SerialName("SaleData") val SaleData: SaleData? = null
 )
 
@@ -94,7 +99,7 @@ data class AdminResponse(
 
 @Serializable
 data class Response(
-    @SerialName("Result") val Result: String, // "Success", "Failure", "Partial"
+    @SerialName("Result") val Result: String? = null,
     @SerialName("ErrorCondition") val ErrorCondition: String? = null,
     @SerialName("AdditionalResponse") val AdditionalResponse: String? = null
 )

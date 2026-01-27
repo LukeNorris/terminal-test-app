@@ -2,9 +2,10 @@ package com.example.terminal_test_app.domain.usecase
 
 import com.example.terminal_test_app.domain.model.CheckoutPage
 import com.example.terminal_test_app.domain.repository.CheckoutLauncher
+import javax.inject.Inject
 
 
-class OpenCheckoutUseCase(
+class OpenCheckoutUseCase @Inject constructor(
     private val checkoutLauncher: CheckoutLauncher
 ) {
     operator fun invoke() {

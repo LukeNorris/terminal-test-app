@@ -31,10 +31,8 @@ object NetworkModule {
         trustManager: X509TrustManager
     ): OkHttpClient =
         OkHttpClient.Builder()
-            .sslSocketFactory(sslContext.socketFactory, trustManager)
-            .hostnameVerifier { _, _ ->
-               true
-            }
+            .sslSocketFactory(sslContext.socketFactory, trustManager) // CRITICAL
+            .hostnameVerifier { _, _ -> true } // CRITICAL
             .build()
 
     @Provides
