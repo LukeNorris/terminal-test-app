@@ -85,12 +85,24 @@ class TerminalRepositoryImpl @Inject constructor(
             val settings = settingsDataSource.settings.first()
 
             val innerJson = ScanSessionJson(
-                Session = Session(Id = sessionId, Type = "Once"),
-                Operation = listOf(Operation(TimeoutMs = timeoutMs))
+                Session = Session(
+                    Id = sessionId,
+                    Type = "Once"
+                ),
+                Operation = listOf(
+                    Operation(
+                        Type = "ScanBarcode",
+                        TimeoutMs = timeoutMs
+                    )
+                )
             )
 
+            val innerJsonString = Json {
+                encodeDefaults = true
+            }.encodeToString(innerJson)
+
             val base64Payload = Base64.getEncoder()
-                .encodeToString(Json.encodeToString(innerJson).toByteArray())
+                .encodeToString(innerJsonString.toByteArray())
 
             val request = SaleToPOIRequest(
                 MessageHeader = MessageHeader(
