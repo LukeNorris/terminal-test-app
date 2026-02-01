@@ -77,37 +77,82 @@ class TerminalRepositoryImpl @Inject constructor(
 
     // --- 2. Barcode Scan Method ---
     @RequiresApi(Build.VERSION_CODES.O)
-    override suspend fun scanSingleBarcode(sessionId: String, timeoutMs: Int): Result<BarcodeScanResult> {
+    override suspend fun scanSingleBarcode(
+        sessionId: String,
+        timeoutMs: Int
+    ): Result<BarcodeScanResult> {
         return try {
-            val currentSettings = settingsDataSource.settings.first()
+            val settings = settingsDataSource.settings.first()
 
             val innerJson = ScanSessionJson(
                 Session = Session(Id = sessionId, Type = "Once"),
                 Operation = listOf(Operation(TimeoutMs = timeoutMs))
             )
 
-            // Encode inner JSON to Base64 for the ServiceIdentification field
-            val jsonString = Json.encodeToString(innerJson)
-            val base64ServiceId = Base64.getEncoder().encodeToString(jsonString.toByteArray())
+            val base64Payload = Base64.getEncoder()
+                .encodeToString(Json.encodeToString(innerJson).toByteArray())
 
-            val plainRequest = SaleToPOIRequest(
+            val request = SaleToPOIRequest(
                 MessageHeader = MessageHeader(
                     MessageCategory = "Admin",
                     ServiceID = UUID.randomUUID().toString().take(10),
                     SaleID = saleId,
-                    POIID = currentSettings.poiId
+                    POIID = settings.poiId
                 ),
-                AdminRequest = AdminRequest(ServiceIdentification = base64ServiceId)
+                AdminRequest = AdminRequest(ServiceIdentification = base64Payload)
             )
 
-            sendSecureRequest(plainRequest, currentSettings)
-                .map { response ->
-                    response.toDomain().getOrThrow()
-                }
+            sendSecureRequest(request, settings).map { response ->
+                val encoded = response.AdminResponse?.AdditionalResponse
+                    ?: throw Exception("Missing AdditionalResponse from barcode scan")
+
+                val decodedJson = String(Base64.getDecoder().decode(encoded))
+                val barcode = Json.decodeFromString<BarcodeResponse>(decodedJson)
+
+                BarcodeScanResult(
+                    data = barcode.Barcode.Data,
+                    symbology = barcode.Barcode.Symbology
+                )
+            }
+
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    override suspend fun cancelBarcodeScan(sessionId: String): Result<Unit> {
+        return try {
+            val settings = settingsDataSource.settings.first()
+
+            val innerJson = mapOf(
+                "Session" to mapOf(
+                    "Id" to sessionId,
+                    "Type" to "End"
+                )
+            )
+
+            val base64Payload = Base64.getEncoder()
+                .encodeToString(Json.encodeToString(innerJson).toByteArray())
+
+            val request = SaleToPOIRequest(
+                MessageHeader = MessageHeader(
+                    MessageCategory = "Admin",
+                    ServiceID = UUID.randomUUID().toString().take(10),
+                    SaleID = saleId,
+                    POIID = settings.poiId
+                ),
+                AdminRequest = AdminRequest(ServiceIdentification = base64Payload)
+            )
+
+            sendSecureRequest(request, settings)
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
 
     /**
      * Common secure communication handler
@@ -165,8 +210,4 @@ class TerminalRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun cancelBarcodeScan(sessionId: String): Result<Unit> {
-        // Implementation logic for "Type": "End" scan session would go here
-        return Result.success(Unit)
-    }
 }

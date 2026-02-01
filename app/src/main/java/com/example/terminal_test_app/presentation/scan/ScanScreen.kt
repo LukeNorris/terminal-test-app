@@ -1,5 +1,6 @@
 package com.example.terminal_test_app.presentation.scan
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -33,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.terminal_test_app.domain.model.ScanMethod
 import com.example.terminal_test_app.domain.model.ScanResult
@@ -42,32 +44,69 @@ import com.example.terminal_test_app.platform.permission.CameraPermission
 
 @Composable
 fun ScanScreen(
-    viewModel: ScanViewModel = viewModel(factory = ScanViewModelFactory())
+    //viewModel: ScanViewModel = viewModel(factory = ScanViewModelFactory())
+            viewModel: ScanViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+
+
 
     Column(modifier = Modifier.fillMaxSize()) {
 
         CameraBarCodeToggle(
             selected = uiState.scanType,
-            onSelected = viewModel::setScanType
+            onSelected = viewModel::setScanType,
+            enabled = !uiState.isScanning
         )
+        BackHandler(enabled = uiState.isScanning) {
+            viewModel.cancelScan()
+        }
 
         Spacer(Modifier.height(12.dp))
 
         when {
             uiState.isScanning && uiState.scanType == ScanMethod.SCAN_QR_CODE -> {
-                CameraPermission {
-                    CameraPreview(
-                        modifier = Modifier.fillMaxSize(),
-                        onQrScanned = viewModel::onQrScanned
-                    )
+                Box(modifier = Modifier.fillMaxSize()) {
+
+                    CameraPermission {
+                        CameraPreview(
+                            modifier = Modifier.fillMaxSize(),
+                            onQrScanned = viewModel::onQrScanned
+                        )
+                    }
+
+                    Button(
+                        onClick = viewModel::cancelScan,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(24.dp)
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            }
+
+            uiState.isScanning && uiState.scanType == ScanMethod.SCAN_BAR_CODE -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Waiting for terminal barcode scan...")
+                        Spacer(Modifier.height(16.dp))
+                        Button(onClick = viewModel::cancelScan) { Text("Cancel") }
+                    }
                 }
             }
 
             uiState.result is ScanResult.QrCode -> {
                 QrResultView(
                     value = (uiState.result as ScanResult.QrCode).rawValue,
+                    onScanAgain = viewModel::reset
+                )
+            }
+
+            uiState.result is ScanResult.BarCode -> {
+                QrResultView(
+                    value = (uiState.result as ScanResult.BarCode).rawValue,
                     onScanAgain = viewModel::reset
                 )
             }
@@ -88,7 +127,8 @@ fun ScanScreen(
 @Composable
 fun CameraBarCodeToggle(
     selected: ScanMethod,
-    onSelected: (ScanMethod) -> Unit
+    onSelected: (ScanMethod) -> Unit,
+    enabled: Boolean
 ) {
     val animatedOffset by animateDpAsState(
         targetValue = if (selected == ScanMethod.SCAN_QR_CODE) 0.dp else 125.dp,

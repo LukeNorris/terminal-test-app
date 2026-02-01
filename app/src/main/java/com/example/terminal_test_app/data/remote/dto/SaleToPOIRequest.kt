@@ -123,3 +123,21 @@ data class Operation(
     @SerialName("Type") val Type: String = "ScanBarcode",
     @SerialName("TimeoutMs") val TimeoutMs: Int
 )
+
+
+@Serializable
+data class BarcodeData(
+    @SerialName("Data") val data: String,
+    @SerialName("Symbology") val symbology: String
+)
+
+@Serializable
+data class BarcodeResponse(
+    @SerialName("Barcode") val Barcode: BarcodePayload
+)
+
+@Serializable
+data class BarcodePayload(
+    @SerialName("Data") val Data: String,
+    @SerialName("Symbology") val Symbology: String
+)
