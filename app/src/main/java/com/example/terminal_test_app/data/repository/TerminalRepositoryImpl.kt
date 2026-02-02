@@ -14,6 +14,7 @@ import com.example.terminal_test_app.domain.repository.BarcodeScanner
 import com.example.terminal_test_app.domain.repository.PaymentRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.encodeToString
+import android.net.Uri
 import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.time.ZoneOffset
@@ -75,7 +76,6 @@ class TerminalRepositoryImpl @Inject constructor(
         }
     }
 
-    // --- 2. Barcode Scan Method ---
     @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun scanSingleBarcode(
         sessionId: String,
@@ -85,24 +85,15 @@ class TerminalRepositoryImpl @Inject constructor(
             val settings = settingsDataSource.settings.first()
 
             val innerJson = ScanSessionJson(
-                Session = Session(
-                    Id = sessionId,
-                    Type = "Once"
-                ),
+                Session = Session(Id = sessionId, Type = "Once"),
                 Operation = listOf(
-                    Operation(
-                        Type = "ScanBarcode",
-                        TimeoutMs = timeoutMs
-                    )
+                    Operation(Type = "ScanBarcode", TimeoutMs = timeoutMs)
                 )
             )
 
-            val innerJsonString = Json {
-                encodeDefaults = true
-            }.encodeToString(innerJson)
-
-            val base64Payload = Base64.getEncoder()
-                .encodeToString(innerJsonString.toByteArray())
+            val base64Payload = Base64.getEncoder().encodeToString(
+                Json { encodeDefaults = true }.encodeToString(innerJson).toByteArray()
+            )
 
             val request = SaleToPOIRequest(
                 MessageHeader = MessageHeader(
@@ -115,22 +106,53 @@ class TerminalRepositoryImpl @Inject constructor(
             )
 
             sendSecureRequest(request, settings).map { response ->
-                val encoded = response.AdminResponse?.AdditionalResponse
-                    ?: throw Exception("Missing AdditionalResponse from barcode scan")
+                val adminResponse = response.AdminResponse
+                    ?: throw Exception("Missing AdminResponse")
 
-                val decodedJson = String(Base64.getDecoder().decode(encoded))
-                val barcode = Json.decodeFromString<BarcodeResponse>(decodedJson)
+                val responseBody = adminResponse.Response
+                val encoded = responseBody.AdditionalResponse
 
-                BarcodeScanResult(
-                    data = barcode.Barcode.Data,
-                    symbology = barcode.Barcode.Symbology
-                )
+                val decodedMessage: String = encoded?.let { encodedValue ->
+                    runCatching {
+                        String(Base64.getDecoder().decode(encodedValue))
+                    }.getOrElse {
+                        encodedValue
+                    }
+                } ?: ""
+
+                when (responseBody.Result) {
+                    "Success" -> {
+                        val json = Json { ignoreUnknownKeys = true }
+                        val barcode = json.decodeFromString<BarcodeResponse>(decodedMessage)
+
+                        BarcodeScanResult(
+                            data = barcode.Barcode.Data,
+                            symbology = barcode.Barcode.Symbology
+                        )
+                    }
+
+                    "Failure" -> {
+                        throw ScanCancelledException(
+                            decodedMessage.ifBlank { "Scan cancelled" }
+                        )
+                    }
+
+                    else -> {
+                        throw Exception("Unknown scan result: ${responseBody.Result}")
+                    }
+                }
+
             }
 
+        } catch (e: ScanCancelledException) {
+            Result.failure(e)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
+
+    class ScanCancelledException(message: String) : Exception(message)
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun cancelBarcodeScan(sessionId: String): Result<Unit> {

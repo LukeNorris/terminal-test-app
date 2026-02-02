@@ -31,9 +31,19 @@ object NetworkModule {
         trustManager: X509TrustManager
     ): OkHttpClient =
         OkHttpClient.Builder()
-            .sslSocketFactory(sslContext.socketFactory, trustManager) // CRITICAL
-            .hostnameVerifier { _, _ -> true } // CRITICAL
+            .sslSocketFactory(sslContext.socketFactory, trustManager)
+            .hostnameVerifier { _, _ -> true }
+
+            // 🔑 CRITICAL FOR TERMINAL API
+            .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+
+            // Optional but recommended: entire call hard limit
+            .callTimeout(65, java.util.concurrent.TimeUnit.SECONDS)
+
             .build()
+
 
     @Provides
     @Singleton

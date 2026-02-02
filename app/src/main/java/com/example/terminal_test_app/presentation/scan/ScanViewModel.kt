@@ -105,7 +105,12 @@ class ScanViewModel @Inject constructor(
         val sessionId = UUID.randomUUID().toString().take(8)
         currentSessionId = sessionId
 
-        _uiState.update { it.copy(isScanning = true) }
+        _uiState.update { state ->
+            state.copy(
+                isScanning = true,
+                debugMessage = "Waiting for terminal response…"
+            )
+        }
 
         viewModelScope.launch {
             val result = scanBarcodeUseCase(
@@ -113,17 +118,28 @@ class ScanViewModel @Inject constructor(
                 timeoutMs = 5000
             )
 
-            _uiState.update {
-                it.copy(
-                    isScanning = false,
-                    result = result.fold(
-                        onSuccess = { ScanResult.BarCode(it.data) },
-                        onFailure = { ScanResult.Cancelled }
-                    )
+            _uiState.update { state ->
+                result.fold(
+                    onSuccess = { barcode ->
+                        state.copy(
+                            isScanning = false,
+                            result = ScanResult.BarCode(barcode.data),
+                            debugMessage = "SUCCESS: ${barcode.data}"
+                        )
+                    },
+                    onFailure = { error ->
+                        state.copy(
+                            isScanning = false,
+                            result = ScanResult.Cancelled,
+                            debugMessage = error.message ?: "Scan failed"
+                        )
+                    }
                 )
             }
         }
     }
+
+
 
     fun reset() {
         _uiState.value = ScanUiState()

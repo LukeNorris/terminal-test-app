@@ -65,6 +65,16 @@ fun ScanScreen(
 
         Spacer(Modifier.height(12.dp))
 
+        uiState.debugMessage?.let { debug ->
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = debug,
+                color = Color.Red,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+        }
+
         when {
             uiState.isScanning && uiState.scanType == ScanMethod.SCAN_QR_CODE -> {
                 Box(modifier = Modifier.fillMaxSize()) {
@@ -87,6 +97,7 @@ fun ScanScreen(
                 }
             }
 
+
             uiState.isScanning && uiState.scanType == ScanMethod.SCAN_BAR_CODE -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -97,12 +108,31 @@ fun ScanScreen(
                 }
             }
 
+            uiState.result is ScanResult.Cancelled -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Scan cancelled or failed")
+                        Spacer(Modifier.height(16.dp))
+                        Button(onClick = viewModel::reset) {
+                            Text("Try again")
+                        }
+                    }
+                }
+            }
+
+
+
+
             uiState.result is ScanResult.QrCode -> {
                 QrResultView(
                     value = (uiState.result as ScanResult.QrCode).rawValue,
                     onScanAgain = viewModel::reset
                 )
             }
+
 
             uiState.result is ScanResult.BarCode -> {
                 QrResultView(
