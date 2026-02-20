@@ -15,45 +15,6 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
-/*class ScanViewModel(
-    private val scanCodeUseCase: ScanCodeUseCase
-) : ViewModel() {
-
-    private val _uiState = MutableStateFlow(ScanUiState())
-    val uiState: StateFlow<ScanUiState> = _uiState
-
-    fun setScanType(type: ScanMethod) {
-        _uiState.update {
-            it.copy(
-                scanType = type,
-                result = null,
-                isScanning = false
-            )
-        }
-    }
-
-    fun startScan() {
-        _uiState.update {
-            it.copy(
-                isScanning = true,
-                result = null
-            )
-        }
-    }
-
-    fun onQrScanned(value: String) {
-        _uiState.update {
-            it.copy(
-                result = ScanResult.QrCode(value),
-                isScanning = false
-            )
-        }
-    }
-
-    fun reset() {
-        _uiState.value = ScanUiState()
-    }
-}*/
 
 @HiltViewModel
 class ScanViewModel @Inject constructor(
@@ -87,7 +48,7 @@ class ScanViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 isScanning = false,
-                result = null
+                result = ScanResult.Cancelled
             )
         }
     }
@@ -128,10 +89,14 @@ class ScanViewModel @Inject constructor(
                         )
                     },
                     onFailure = { error ->
+                        val message = error.message.orEmpty()
+
                         state.copy(
                             isScanning = false,
-                            result = ScanResult.Cancelled,
-                            debugMessage = error.message ?: "Scan failed"
+                            result = ScanResult.BarCode(
+                                rawValue = message
+                            ),
+                            debugMessage = message
                         )
                     }
                 )
@@ -142,6 +107,8 @@ class ScanViewModel @Inject constructor(
 
 
     fun reset() {
-        _uiState.value = ScanUiState()
+        _uiState.update { current ->
+            ScanUiState(scanType = current.scanType)
+        }
     }
 }

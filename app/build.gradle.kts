@@ -14,8 +14,8 @@ android {
         applicationId = "com.example.terminal_test_app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 21
-        versionName = "2.7.5"
+        versionCode = 34
+        versionName = "2.8.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -28,6 +28,15 @@ android {
             storePassword = providers.gradleProperty("TERMINAL_STORE_PASSWORD").get()
             keyAlias = providers.gradleProperty("TERMINAL_KEY_ALIAS").get()
             keyPassword = providers.gradleProperty("TERMINAL_KEY_PASSWORD").get()
+
+            // Force enable V1 and V2
+            enableV1Signing = true
+            enableV2Signing = true
+
+            // Explicitly disable V3 and V4 to stay compatible with Adyen's re-signer
+            enableV3Signing = false
+            enableV4Signing = false
+
         }
     }
 
@@ -35,6 +44,7 @@ android {
         release {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
+
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

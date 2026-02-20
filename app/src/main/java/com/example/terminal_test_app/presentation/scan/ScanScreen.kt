@@ -65,16 +65,6 @@ fun ScanScreen(
 
         Spacer(Modifier.height(12.dp))
 
-        uiState.debugMessage?.let { debug ->
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = debug,
-                color = Color.Red,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-        }
-
         when {
             uiState.isScanning && uiState.scanType == ScanMethod.SCAN_QR_CODE -> {
                 Box(modifier = Modifier.fillMaxSize()) {
@@ -191,14 +181,14 @@ fun CameraBarCodeToggle(
 
         Row(modifier = Modifier.fillMaxSize()) {
             ToggleLabel(
-                text = "Scan QR Code",
+                text = "Camera Scanner",
                 selected = selected == ScanMethod.SCAN_QR_CODE
             ) {
                 onSelected(ScanMethod.SCAN_QR_CODE)
             }
 
             ToggleLabel(
-                text = "Scan Bar Code",
+                text = "Barcode Scanner",
                 selected = selected == ScanMethod.SCAN_BAR_CODE
             ) {
                 onSelected(ScanMethod.SCAN_BAR_CODE)

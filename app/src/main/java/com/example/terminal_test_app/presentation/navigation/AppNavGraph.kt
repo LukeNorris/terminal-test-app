@@ -23,7 +23,17 @@ fun AppNavGraph(
         modifier = Modifier.padding(padding)
     ) {
         composable(Screen.Checkout.route) {
-            CheckoutScreen()
+            CheckoutScreen(
+                onNavigateToSettings = {
+                    navController.navigate(Screen.Settings.route) {
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
         }
         composable(Screen.Scan.route) {
             ScanScreen()

@@ -7,14 +7,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
-fun CheckoutScreen() {
-
+fun CheckoutScreen(
+    onNavigateToSettings: () -> Unit
+) {
     val viewModel: CheckoutViewModel = hiltViewModel()
-
     val uiState by viewModel.uiState.collectAsState()
 
     Column(
@@ -28,17 +29,41 @@ fun CheckoutScreen() {
             is PaymentUiState.Loading -> {
                 Text("Processing Terminal Payment...")
             }
+
             is PaymentUiState.Success -> {
-                Text("Payment Successful! Auth: ${state.authCode}", color = Color.Green)
-                Button(onClick = { viewModel.resetStatus() }) { Text("Back to Start") }
+                // No button — auto-dismisses after 5 seconds
+                Text(
+                    "Payment Successful! Auth: ${state.authCode}",
+                    color = Color.Green,
+                    textAlign = TextAlign.Center
+                )
             }
+
             is PaymentUiState.Error -> {
-                Text("Payment Failed: ${state.message}", color = Color.Red)
-                Button(onClick = { viewModel.resetStatus() }) { Text("Try Again") }
+                // No button — auto-dismisses after 5 seconds
+                Text(
+                    "Payment Failed: ${state.message}",
+                    color = Color.Red,
+                    textAlign = TextAlign.Center
+                )
             }
-            is PaymentUiState.Idle -> {
-                // idle state
+
+            is PaymentUiState.MissingSettings -> {
+                Text(
+                    "Terminal not configured. Please enter your credentials in Settings.",
+                    color = Color.Red,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = {
+                    viewModel.resetStatus()
+                    onNavigateToSettings()
+                }) {
+                    Text("Go to Settings")
+                }
             }
+
+            is PaymentUiState.Idle -> { /* nothing shown */ }
         }
 
         Spacer(modifier = Modifier.height(20.dp))

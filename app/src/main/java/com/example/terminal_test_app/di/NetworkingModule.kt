@@ -9,7 +9,6 @@ import com.example.terminal_test_app.domain.repository.PaymentRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -33,17 +32,11 @@ object NetworkModule {
         OkHttpClient.Builder()
             .sslSocketFactory(sslContext.socketFactory, trustManager)
             .hostnameVerifier { _, _ -> true }
-
-            // 🔑 CRITICAL FOR TERMINAL API
             .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-
-            // Optional but recommended: entire call hard limit
             .callTimeout(65, java.util.concurrent.TimeUnit.SECONDS)
-
             .build()
-
 
     @Provides
     @Singleton
@@ -53,7 +46,6 @@ object NetworkModule {
         Retrofit.Builder()
             .baseUrl("https://127.0.0.1:8443/")
             .client(okHttpClient)
-            // ScalarsConverterFactory MUST come before Gson to handle raw encrypted strings
             .addConverterFactory(ScalarsConverterFactory.create())
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -65,17 +57,13 @@ object NetworkModule {
     ): TerminalApi =
         retrofit.create(TerminalApi::class.java)
 
-    @Provides
-    @Singleton
-    fun provideSettingsDataSource(
-        @ApplicationContext context: Context
-    ): SettingsDataSource = SettingsDataSource(context)
+    // ✅ provideSettingsDataSource removed — Hilt uses the one from AppModule
 
     @Provides
     @Singleton
     fun provideTerminalRepository(
         api: TerminalApi,
-        settingsDataSource: SettingsDataSource,
+        settingsDataSource: SettingsDataSource, // ✅ injected from AppModule
         @Named("saleId") saleId: String
     ): TerminalRepositoryImpl =
         TerminalRepositoryImpl(
@@ -84,12 +72,10 @@ object NetworkModule {
             saleId = saleId
         )
 
-    // Binds the single repository instance to the BarcodeScanner interface
     @Provides
     @Singleton
     fun provideBarcodeScanner(repository: TerminalRepositoryImpl): BarcodeScanner = repository
 
-    // Binds the same repository instance to the PaymentRepository interface
     @Provides
     @Singleton
     fun providePaymentRepository(repository: TerminalRepositoryImpl): PaymentRepository = repository

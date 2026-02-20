@@ -2,16 +2,15 @@ package com.example.terminal_test_app.data.repository
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import com.example.terminal_test_app.data.mapper.toDomain
 import com.example.terminal_test_app.data.remote.api.TerminalApi
 import com.example.terminal_test_app.data.remote.crypto.NexoCrypto
 import com.example.terminal_test_app.data.remote.dto.*
 import com.example.terminal_test_app.data.settings.SettingsDataSource
-import com.example.terminal_test_app.data.settings.TerminalSettings
 import com.example.terminal_test_app.domain.model.BarcodeScanResult
 import com.example.terminal_test_app.domain.model.PaymentResult
 import com.example.terminal_test_app.domain.repository.BarcodeScanner
 import com.example.terminal_test_app.domain.repository.PaymentRepository
+import com.example.terminal_test_app.data.settings.TerminalSettings
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.encodeToString
 import android.net.Uri
@@ -76,6 +75,7 @@ class TerminalRepositoryImpl @Inject constructor(
         }
     }
 
+    // --- 2. Barcode Scan Method ---
     @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun scanSingleBarcode(
         sessionId: String,
@@ -84,17 +84,28 @@ class TerminalRepositoryImpl @Inject constructor(
         return try {
             val settings = settingsDataSource.settings.first()
 
+            // 1. Build inner ScanBarcode JSON
             val innerJson = ScanSessionJson(
-                Session = Session(Id = sessionId, Type = "Once"),
+                Session = Session(
+                    Id = sessionId,
+                    Type = "Once"
+                ),
                 Operation = listOf(
-                    Operation(Type = "ScanBarcode", TimeoutMs = timeoutMs)
+                    Operation(
+                        Type = "ScanBarcode",
+                        TimeoutMs = timeoutMs
+                    )
                 )
             )
 
-            val base64Payload = Base64.getEncoder().encodeToString(
-                Json { encodeDefaults = true }.encodeToString(innerJson).toByteArray()
-            )
+            val innerJsonString = Json {
+                encodeDefaults = true
+            }.encodeToString(innerJson)
 
+            val base64Payload = Base64.getEncoder()
+                .encodeToString(innerJsonString.toByteArray())
+
+            // 2. Wrap in SaleToPOIRequest
             val request = SaleToPOIRequest(
                 MessageHeader = MessageHeader(
                     MessageCategory = "Admin",
@@ -102,56 +113,80 @@ class TerminalRepositoryImpl @Inject constructor(
                     SaleID = saleId,
                     POIID = settings.poiId
                 ),
-                AdminRequest = AdminRequest(ServiceIdentification = base64Payload)
+                AdminRequest = AdminRequest(
+                    ServiceIdentification = base64Payload
+                )
             )
 
+            // 3. Send request + handle response
             sendSecureRequest(request, settings).map { response ->
+
                 val adminResponse = response.AdminResponse
                     ?: throw Exception("Missing AdminResponse")
 
-                val responseBody = adminResponse.Response
-                val encoded = responseBody.AdditionalResponse
+                val result = adminResponse.Response.Result
+                    ?: throw Exception("Missing AdminResponse.Response.Result")
 
-                val decodedMessage: String = encoded?.let { encodedValue ->
-                    runCatching {
-                        String(Base64.getDecoder().decode(encodedValue))
-                    }.getOrElse {
-                        encodedValue
-                    }
-                } ?: ""
-
-                when (responseBody.Result) {
+                when (result) {
                     "Success" -> {
+                        val encoded = adminResponse.Response.AdditionalResponse
+                            ?: throw Exception("Missing AdditionalResponse on successful barcode scan")
+
+                        val decodedJson = runCatching {
+                            // Primary: Base64
+                            String(Base64.getDecoder().decode(encoded))
+                        }.getOrElse {
+                            // Fallback: URL-encoded (Adyen may return this)
+                            java.net.URLDecoder.decode(encoded, "UTF-8")
+                        }
+
                         val json = Json { ignoreUnknownKeys = true }
-                        val barcode = json.decodeFromString<BarcodeResponse>(decodedMessage)
+
+                        val normalizedJson = decodedJson
+                            .removePrefix("additionalData=")
+                            .trim()
+
+                        val barcodeResponse = try {
+                            json.decodeFromString<BarcodeResponse>(normalizedJson)
+                        } catch (e: Exception) {
+                            throw Exception(
+                                "Failed to parse barcode payload.\nDecoded payload:\n$normalizedJson"
+                            )
+                        }
 
                         BarcodeScanResult(
-                            data = barcode.Barcode.Data,
-                            symbology = barcode.Barcode.Symbology
+                            data = barcodeResponse.Barcode.Data,
+                            symbology = barcodeResponse.Barcode.Symbology
                         )
                     }
 
                     "Failure" -> {
-                        throw ScanCancelledException(
-                            decodedMessage.ifBlank { "Scan cancelled" }
+                        val encoded = adminResponse.Response.AdditionalResponse
+                        val decoded = runCatching {
+                            String(Base64.getDecoder().decode(encoded))
+                        }.getOrElse {
+                            Uri.decode(encoded)
+                        }
+
+                        throw Exception(
+                            buildString {
+                                append("Scan failed")
+                                adminResponse.Response.ErrorCondition?.let { append(" ($it)") }
+                                decoded?.let { append(": $it") }
+                            }
                         )
                     }
 
                     else -> {
-                        throw Exception("Unknown scan result: ${responseBody.Result}")
+                        throw Exception("Unexpected AdminResponse.Result: $result")
                     }
                 }
-
             }
 
-        } catch (e: ScanCancelledException) {
-            Result.failure(e)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
-
-    class ScanCancelledException(message: String) : Exception(message)
 
 
     @RequiresApi(Build.VERSION_CODES.O)
